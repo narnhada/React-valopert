@@ -7,6 +7,10 @@ import mongoose from 'mongoose';
 import api from './api';
 // import createFakeData from './createFakeData';
 import jwtMiddelware from './lib/jwtMiddleware';
+import serve from 'koa-static';
+import path from 'path';
+import send from 'koa-send';
+import { async } from '../node_modules/rxjs/internal/scheduler/async';
 
 const { PORT, MONGO_URI } = process.env; // ../env 적용
 mongoose
@@ -42,6 +46,20 @@ app.use(bodyParser());
 app.use(jwtMiddelware);
 
 app.use(router.routes()).use(router.allowedMethods());
+
+const buildDirectory = path.resolve(
+  __dirname,
+  '../../../27_blog-frontend/build',
+);
+
+app.use(serve(buildDirectory));
+app.use(async (ctx) => {
+  //Not Found되고, 주소가 /api로 시작하지 않는 경우
+  if (ctx.status === 404 && ctx.path.indexOf('/api') !== 0) {
+    //index.html 내용을 반환
+    await send(ctx, 'index.html', { root: buildDirectory });
+  }
+});
 
 const port = PORT || 4000;
 app.listen(port, () => {
